@@ -1,0 +1,9 @@
+version: "0.1.0"
+pre_ci_boot:
+    image: index.alauda.cn/alaudaci/u14java
+    tag: oraclejdk8
+ci:
+    - mvn clean
+    - mvn compile -e -U
+    - mvn package
+    - cp target/alauda-pipeline.hpi $ALAUDACI_UPLOAD_DIR

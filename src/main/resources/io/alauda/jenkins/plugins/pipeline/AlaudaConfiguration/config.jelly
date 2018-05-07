@@ -1,0 +1,34 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials" title="xxddd">
+
+    <f:section title="Alauda">
+        <f:entry title="${%API Console URL}" field="consoleURL">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="${%API Endpoint}" field="apiEndpoint">
+            <f:textbox/>
+        </f:entry>
+
+        <f:entry title="${%API Token}" field="apiToken">
+            <f:textbox/>
+        </f:entry>
+
+        <f:entry title="${%default account}" field="account">
+            <f:textbox/>
+        </f:entry>
+
+        <f:entry title="${%default space name}" field="spaceName">
+            <f:textbox/>
+        </f:entry>
+
+        <f:entry title="${%default cluster name}" field="clusterName">
+            <f:textbox/>
+        </f:entry>
+
+        <f:entry title="${%default namespace}" field="namespace">
+            <f:textbox/>
+        </f:entry>
+    </f:section>
+
+</j:jelly>

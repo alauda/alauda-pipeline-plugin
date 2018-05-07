@@ -1,0 +1,25 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <f:entry title="${%buildConfigName}" field="buildConfigName"
+             description="${%buildConfigNameDescr}">
+        <f:textbox />
+    </f:entry>
+    <f:advanced>
+        <f:entry title="${%commitID}" field="commitID"
+                 description="${%commitIDDescr}">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%branch}" field="branch"
+                 description="${%branchDescr}">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%async}" field="async"
+                 description="${%asyncDescr}">
+            <f:checkbox default="true" />
+        </f:entry>
+        <f:entry title="${%ignoreBuildResult}" field="ignoreBuildResult"
+                 description="${%ignoreBuildResultDescr}">
+            <f:checkbox default="false" />
+        </f:entry>
+    </f:advanced>
+</j:jelly>

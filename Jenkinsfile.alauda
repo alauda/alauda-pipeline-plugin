@@ -1,0 +1,90 @@
+@Library('alauda-cicd') _
+
+def GIT_COMMIT
+def GIT_BRANCH
+
+pipeline {
+    agent {
+        label "java"
+    }
+
+    environment {
+        NAME = "AlaudaPipelinePugin"
+        DINGDING_BOT = "ding-jenkins-webhook"
+        OSS_ENDPOINT = "http://oss.alauda.cn"
+        NAMESPACE = "alaudaorg"
+        SPACE_NAME = "global"
+        PREFIX = "alauda-pipeline-plugin"
+    }
+
+      options {
+          buildDiscarder(logRotator(numToKeepStr: '10'))
+
+          // 不允许并行执行
+          disableConcurrentBuilds()
+      }
+
+    stages {
+        stage("CheckoutSCM") {
+            steps{
+                script {
+                    def scmVars = checkout scm
+                    env.GIT_COMMIT = scmVars.GIT_COMMIT
+                    GIT_COMMIT = scmVars.GIT_COMMIT
+                    env.GIT_BRANCH = scmVars.GIT_BRANCH
+                    GIT_BRANCH = scmVars.GIT_BRANCH
+                    echo "git commit \"${env.GIT_COMMIT}\" branch \"${env.GIT_BRANCH}\""
+                    PREFIX = "${PREFIX}/${GIT_BRANCH}"
+                }
+            }
+        }
+
+        stage("Package") {
+            steps{
+                sh "mvn clean"
+                sh "mvn compile -e -U"
+                sh "mvn package"
+            }
+        }
+
+        stage("ArchiveArtifacts"){
+            steps{
+                archiveArtifacts 'target/alauda-pipeline.hpi'
+            }
+        }
+
+        stage("Upload"){
+            steps{
+                script{
+                    withCredentials([string(credentialsId:"alaudaorg-token", variable: "TOKEN")]){
+                        def result = sh(returnStdout:true, script:"curl --data-binary \"@target/alauda-pipeline.hpi\" -H \"Authorization: Token $TOKEN\" -X PUT ${OSS_ENDPOINT}/${NAMESPACE}/${SPACE_NAME}/${PREFIX}").trim()
+                        echo "$result"
+                        if (result.contains("errors") || result.contains("Failed")){
+                            error "upload error!!!"
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+      post {
+          // 成功
+          success {
+            script {
+                deploy.notificationSuccess("${NAME}", DINGDING_BOT, "流水线完成了", "${GIT_BRANCH} ${GIT_COMMIT}")
+            }
+          }
+          // 失败
+          failure {
+              script{
+                deploy.notificationFailed("${NAME}", DINGDING_BOT, "流水线失败了", "${GIT_BRANCH} ${GIT_COMMIT}")
+              }
+          }
+          // 取消的
+          aborted {
+            echo "aborted!"
+          }
+      }
+}
