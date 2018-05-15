@@ -518,12 +518,19 @@ class AlaudaDSL implements Serializable {
         private PVC pvc
 
         Build setDockerfileLocation(String dockerfileLocation){
-            this.dockerfileLocation = dockerfileLocation
+            this.dockerfileLocation = safePath(dockerfileLocation)
             return this
         }
 
+        String safePath(String path){
+            if(path.startsWith("/")){
+                return "." + path
+            }
+            return path
+        }
+
         Build setContextPath(String contextPath){
-            this.contextPath = contextPath
+            this.contextPath = safePath(contextPath)
             return this
         }
 
@@ -582,6 +589,7 @@ class AlaudaDSL implements Serializable {
         }
 
         Build withYaml(String ymlFile){
+            ymlFile = safePath(ymlFile)
 
             String content = alauda.script.readFile(ymlFile)
             def result = parseAlaudaCIYamlContent(content)
@@ -717,8 +725,8 @@ class AlaudaDSL implements Serializable {
         Map map = parseArgs(argsDefine, args)
         def build = new AlaudaDSL.Build(alauda: this)
 
-        build.contextPath = map.get("contextPath", '.')
-        build.dockerfileLocation = map.get("dockerfileLocation", './')
+        build.setContextPath(map.get("contextPath", './'))
+        build.setDockerfileLocation(map.get("dockerfileLocation", './'))
         String imageCache = map.get("useImageCache", "true")
         build.useImageCache = imageCache.toLowerCase().equals("true")
         build.ciEnabled = false
