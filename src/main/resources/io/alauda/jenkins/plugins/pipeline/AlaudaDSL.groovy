@@ -625,8 +625,10 @@ class AlaudaDSL implements Serializable {
 
         // start build image and return imageObject
         Image startBuildImage(){
-
-            def dockerfile = this.dockerfileLocation + "Dockerfile"
+            def dockerfile = this.dockerfileLocation;
+            if (!this.dockerfileLocation.endsWith("/"))
+                dockerfile += "/";
+            dockerfile += "Dockerfile";
             def context = this.contextPath
             def useImageCache = this.useImageCache
 
