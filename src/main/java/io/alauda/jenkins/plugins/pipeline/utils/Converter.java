@@ -26,4 +26,16 @@ public class Converter {
         }
         return false;
     }
+
+    public static int getDataAsInt(Map<String, Object> data, String key, int defaultValue) {
+        if (data == null || data.size() == 0 || !data.containsKey(key)) {
+            return defaultValue;
+        }
+
+        Object k1 = data.get(key);
+        if (k1 != null) {
+            return Integer.parseInt(k1.toString());
+        }
+        return defaultValue;
+    }
 }
