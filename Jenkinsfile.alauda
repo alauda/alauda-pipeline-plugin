@@ -43,12 +43,14 @@ pipeline {
             steps{
                 sh "mvn clean"
                 sh "mvn compile -e -U"
+                sh "mvn findbugs:findbugs"
                 sh "mvn package"
             }
         }
 
         stage("ArchiveArtifacts"){
             steps{
+                findbugs canComputeNew: false, defaultEncoding: '', excludePattern: '', failedTotalAll: '1', healthy: '', includePattern: '', pattern: 'target/findbugsXml.xml', unHealthy: ''
                 archiveArtifacts 'target/alauda-pipeline.hpi'
             }
         }
