@@ -2,12 +2,16 @@ package io.alauda.jenkins.plugins.pipeline
 
 import com.cloudbees.groovy.cps.NonCPS
 import com.google.common.base.Strings
+import com.fasterxml.jackson.databind.ObjectMapper
 import groovy.json.JsonSlurperClassic
+import groovy.json.JsonOutput
 import hudson.AbortException
+import org.jenkinsci.plugins.workflow.cps.CpsScript
 import io.alauda.model.Kubernete
+import io.alauda.model.ServiceCreatePayload
 import io.alauda.model.ServiceDetails
 import io.alauda.model.ServiceUpdatePayload
-import org.jenkinsci.plugins.workflow.cps.CpsScript
+
 import org.yaml.snakeyaml.Yaml
 
 class AlaudaDSL implements Serializable {
@@ -280,7 +284,15 @@ class AlaudaDSL implements Serializable {
         private String name;
         private boolean createIfNotExists;
         private int timeout;
-//        private ABC abc;
+
+        //using yaml to deploy service
+        private String yamlFile;
+        // when using yaml to update service, user should set image and image tag
+        private String imageWillUpdate;
+        private String imageTagUpdateTo;
+
+        private boolean rollback;
+
 
         private Map<String, Container> containers = new HashMap<>();
         private String currentContainerName = "0"; // currentContainerName=0 when method withContainer has not argument
@@ -306,6 +318,22 @@ class AlaudaDSL implements Serializable {
 
         def retrieve() {
             return this;
+        }
+
+        Service withYaml(String yaml="app.yaml"){
+            this.yamlFile = yaml
+            return this
+        }
+
+        Service autoReplaceImageTag(String image, String tag){
+            this.imageWillUpdate = image
+            this.imageTagUpdateTo = tag
+            return this
+        }
+
+        Service autoRollbackOnFail(){
+            this.rollback = true
+            return this
         }
 
         Service withTimeout(int timeout) {
@@ -337,6 +365,14 @@ class AlaudaDSL implements Serializable {
             return this.getCurrentContainer().withEnv(key, value);
         }
 
+        Container withEnvVarFrom(String name, String key, String from) {
+            return this.getCurrentContainer().withEnvVarFrom(name, key, from);
+        }
+
+        Container withEnvFrom(String name) {
+            return this.getCurrentContainer().withEnvFrom(name);
+        }
+
         Container withCommand(String command) {
             return this.getCurrentContainer().withCommand(command);
         }
@@ -363,6 +399,9 @@ class AlaudaDSL implements Serializable {
             if (newContainer.envVars != null) {
                 originContainer.addEnvVars(newContainer.envVars)
             }
+            if (newContainer.envFroms != null) {
+                originContainer.addEnvFroms(newContainer.envFroms)
+            }
             if (!Strings.isNullOrEmpty(newContainer.command)) {
                 originContainer.setCommand([newContainer.command])
             }
@@ -371,47 +410,99 @@ class AlaudaDSL implements Serializable {
             }
         }
 
+        @NonCPS
+        def autoReplaceImageTagInYamlMap(yamlMap){
+            for(def res : yamlMap){
+                if(res.kind.equals('Deployment')){
+                    def containers = res.spec.template.spec.containers
+                    for(def container : containers){
+                        if(container.image.startsWith(this.imageWillUpdate+":")){
+                            container.image = this.imageWillUpdate + ":" + this.imageTagUpdateTo
+                        }
+                    }
+                }
+            }
+            return yamlMap
+        }
+
+        @NonCPS
+        def ServiceCreatePayload convertCreatePaylod(payload){
+            String jsonStr = new JsonOutput().toJson(payload)
+            return new ObjectMapper().readValue(jsonStr, ServiceCreatePayload.class)
+        }
+
+        @NonCPS
+        def ServiceUpdatePayload convertUpdatePaylod(payload){
+            String jsonStr = new JsonOutput().toJson(payload)
+            return new ObjectMapper().readValue(jsonStr, ServiceUpdatePayload.class)
+        }
+
         String deploy(Object... args) {
             println("deploy()")
 
             def argsDefine = ["async"]
             Map map = alauda.parseArgs(argsDefine, args)
             boolean async = map.get("async", false);
-
             ServiceDetails service = alauda.retrieveServiceDetails(this.name, alauda.cluster(), alauda.namespace());
-            List<Kubernete.Container> originContainers = service.retrieveContainers();
 
-            // Example --> {'0': Container('name': '0', 'image': 'index.alauda.cn/alaudaorg/httpecho:v1', 'imageTag': 'v1'),
-            // 'c1': Container('name': 'c1', 'imageTag': 'latest')}
-            // c1's properties will override the container's properties which name is "0", if c1 is the first container defined in service.
-            // The result:  {'name': 'c1', 'image': 'index.alauda.cn/alaudaorg/httpecho:v1', 'imageTag': 'latest')}
-            def firstContainer = originContainers.get(0);
-            Container zeroContainer;
-            if (containers.containsKey("0")) {
-                zeroContainer = containers.get("0")
-                updateContainer(firstContainer, zeroContainer)
-                containers.remove(zeroContainer)
-            }
-            if (containers.containsKey(firstContainer.name)) {
-                zeroContainer = containers.get(firstContainer.name)
-                updateContainer(firstContainer, zeroContainer)
-                containers.remove(zeroContainer)
-            }
+            // no yaml , must update service
+            if(this.yamlFile == null || this.yamlFile==""){
+                if(service == null){
+                    throw new Exception(String.format("service %s is not exists, cannot update it", this.name) )
+                }
 
-            containers.each {
-                for (int i = 0; i < originContainers.size(); i++) {
-                    if (it.getKey() == originContainers.get(i).name) {
-                        updateContainer(originContainers.get(i), it.getValue())
+                List<Kubernete.Container> originContainers = service.retrieveContainers();
+
+                def firstContainer = originContainers.get(0);
+                Container zeroContainer;
+                if (containers.containsKey("0")) {
+                    zeroContainer = containers.get("0")
+                    updateContainer(firstContainer, zeroContainer)
+                    containers.remove(zeroContainer)
+                }
+                if (containers.containsKey(firstContainer.name)) {
+                    zeroContainer = containers.get(firstContainer.name)
+                    updateContainer(firstContainer, zeroContainer)
+                    containers.remove(zeroContainer)
+                }
+
+                containers.each {
+                    for (int i = 0; i < originContainers.size(); i++) {
+                        if (it.getKey() == originContainers.get(i).name) {
+                            updateContainer(originContainers.get(i), it.getValue())
+                        }
                     }
                 }
+
+                service.updateContainers(originContainers)
+                ServiceUpdatePayload payload = service.convertToServiceUpdatePayload()
+                println("${payload}")
+                alauda.script.alaudaDeployService serviceID: service.getResource().getUuid(), payload: payload, async: async, rollback:rollback
+
+                return service.getResource().getUuid();
             }
 
-            service.updateContainers(originContainers)
-            ServiceUpdatePayload payload = service.convertToServiceUpdatePayload()
-            println("${payload}")
-            alauda.script.alaudaDeployService serviceID: service.getResource().getUuid(), payload: payload, async: async
+            // use yaml , create service or update service
 
-            return service.getResource().getUuid();
+            def yamlMap = alauda.script.readYaml(file:this.yamlFile)
+            def kubes = this.autoReplaceImageTagInYamlMap(yamlMap)
+            def payload = [
+                    "resource":["name": name],
+                    "cluster":["name": alauda.cluster()],
+                    "namespace":["name": alauda.namespace()],
+                    "kubernetes": kubes
+            ]
+            println("${payload}")
+
+            if(service == null){
+                // will create it
+                def serviceID = alauda.script.alaudaDeployService serviceName: this.name, payload: convertCreatePaylod(payload), async: async
+                return serviceID
+            }else{
+                // will update it
+                alauda.script.alaudaDeployService serviceID: service.getResource().getUuid(), payload: convertUpdatePaylod(payload), async: async, rollback:rollback
+                return service.getResource().getUuid()
+            }
         }
 
         @Override
@@ -430,7 +521,8 @@ class AlaudaDSL implements Serializable {
         private String name;
         private String image;
         private String imageTag;
-        private List<Kubernete.Container.EnvVar> envVars = new ArrayList<>();
+        private List<Kubernete.Container.EnvVar> envVars = new ArrayList<>()
+        private List<Kubernete.Container.EnvFrom> envFroms = new ArrayList<>()
         private String command;
         private String args;
 
@@ -439,19 +531,24 @@ class AlaudaDSL implements Serializable {
         }
 
         String deploy(Object... args) {
-            return service.deploy(args);
+            return service.deploy(args)
+        }
+
+        Container autoRollbackOnFail(){
+            service.rollback = true
+            return this
         }
 
         Container withContainer() {
-            return this.service.withContainer();
+            return this.service.withContainer()
         }
 
         Container withContainer(String name) {
-            return this.service.withContainer(name);
+            return this.service.withContainer(name)
         }
 
         Container withImage(String imageName) {
-            println("withImage('$imageName')");
+            println("withImage('$imageName')")
 
             this.image = imageName;
             return this;
@@ -469,6 +566,20 @@ class AlaudaDSL implements Serializable {
 
             this.envVars.add(new Kubernete.Container.EnvVar(key, value));
             return this;
+        }
+
+        Container withEnvVarFrom(String name, String key, String from) {
+            println("withEnvVarFrom('$name', '$key', '$from')")
+
+            this.envVars.add(new Kubernete.Container.EnvVar(name, key, from));
+            return this
+        }
+
+        Container withEnvFrom(String name) {
+            println("withEnvFrom('$name')")
+
+            this.envFroms.add(new Kubernete.Container.EnvFrom(name))
+            return this
         }
 
         Container withCommand(String command) {
@@ -497,6 +608,7 @@ class AlaudaDSL implements Serializable {
                     ", image='" + image + '\'' +
                     ", imageTag='" + imageTag + '\'' +
                     ", envVars=" + envVars +
+                    ", envFroms=" + envFroms +
                     ", command='" + command + '\'' +
                     ", args='" + args + '\'' +
                     '}';
@@ -518,12 +630,19 @@ class AlaudaDSL implements Serializable {
         private PVC pvc
 
         Build setDockerfileLocation(String dockerfileLocation){
-            this.dockerfileLocation = dockerfileLocation
+            this.dockerfileLocation = safePath(dockerfileLocation)
             return this
         }
 
+        String safePath(String path){
+            if(path.startsWith("/")){
+                return "." + path
+            }
+            return path
+        }
+
         Build setContextPath(String contextPath){
-            this.contextPath = contextPath
+            this.contextPath = safePath(contextPath)
             return this
         }
 
@@ -582,6 +701,7 @@ class AlaudaDSL implements Serializable {
         }
 
         Build withYaml(String ymlFile){
+            ymlFile = safePath(ymlFile)
 
             String content = alauda.script.readFile(ymlFile)
             def result = parseAlaudaCIYamlContent(content)
@@ -617,8 +737,10 @@ class AlaudaDSL implements Serializable {
 
         // start build image and return imageObject
         Image startBuildImage(){
-
-            def dockerfile = this.dockerfileLocation + "Dockerfile"
+            def dockerfile = this.dockerfileLocation;
+            if (!this.dockerfileLocation.endsWith("/"))
+                dockerfile += "/";
+            dockerfile += "Dockerfile";
             def context = this.contextPath
             def useImageCache = this.useImageCache
 
@@ -717,8 +839,8 @@ class AlaudaDSL implements Serializable {
         Map map = parseArgs(argsDefine, args)
         def build = new AlaudaDSL.Build(alauda: this)
 
-        build.contextPath = map.get("contextPath", '.')
-        build.dockerfileLocation = map.get("dockerfileLocation", './')
+        build.setContextPath(map.get("contextPath", './'))
+        build.setDockerfileLocation(map.get("dockerfileLocation", './'))
         String imageCache = map.get("useImageCache", "true")
         build.useImageCache = imageCache.toLowerCase().equals("true")
         build.ciEnabled = false
@@ -810,7 +932,6 @@ class AlaudaDSL implements Serializable {
         }
     }
 
-
     @NonCPS
     def static parseRegistry(String url){
         String registry
@@ -824,5 +945,14 @@ class AlaudaDSL implements Serializable {
 
         String[] registryList = registry.split("/")
         return registryList[0]
+    }
+
+
+    @NonCPS
+    def static String safePath(String path){
+        if(path.startsWith("/")){
+            return "." + path
+        }
+        return path
     }
 }

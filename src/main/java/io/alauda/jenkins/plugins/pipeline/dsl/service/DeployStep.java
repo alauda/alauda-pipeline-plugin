@@ -47,10 +47,17 @@ import static io.alauda.jenkins.plugins.pipeline.utils.Converter.getDataAsBool;
 public class DeployStep extends AlaudaBaseStep {
     private static final Logger LOGGER = Logger.getLogger(DeployStep.class.getName());
 
-    private Boolean async;
+    private boolean rollback;
+
+    public static Logger getLOGGER() {
+        return LOGGER;
+    }
+
+    private boolean async;
     private String serviceID;
     private ServiceUpdatePayload updatePayload;
     private ServiceCreatePayload createPayload;
+    private int timeout;
 
     @DataBoundConstructor
     public DeployStep() throws MissingJenkinsConfigException {
@@ -69,9 +76,10 @@ public class DeployStep extends AlaudaBaseStep {
     public Object doIt(@Nonnull Run<?, ?> run, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
         Alauda alauda = new Alauda((IAlaudaConfig) this).setJenkinsContext(run, launcher, listener);
         if (!Strings.isNullOrEmpty(serviceID)) {
-            return alauda.updateService(serviceID, updatePayload, getAsync(), 120);
+            getLOGGER().info("env from -->"+ updatePayload);
+            return alauda.updateService(serviceID, updatePayload, getAsync(), rollback, getTimeout());
         } else {
-            return alauda.createService(createPayload, true);
+            return alauda.createService(createPayload, getAsync(), getTimeout());
         }
     }
 
@@ -111,6 +119,13 @@ public class DeployStep extends AlaudaBaseStep {
             DeployStep step = new DeployStep();
             boolean async = Converter.getDataAsBool(arguments, "async");
             step.setAsync(async);
+
+            boolean rollback = Converter.getDataAsBool(arguments, "rollback");
+            step.setRollback(rollback);
+
+            int timeout = Converter.getDataAsInt(arguments, "timeout", 600);
+            step.setTimeout(timeout);
+
 
             String serviceID = Converter.getDataAsString(arguments, "serviceID");
             if (!Strings.isNullOrEmpty(serviceID)) {
@@ -157,13 +172,31 @@ public class DeployStep extends AlaudaBaseStep {
         this.serviceID = serviceID;
     }
 
-    public Boolean getAsync() {
+    public boolean getAsync() {
         return async;
     }
 
     @DataBoundSetter
-    public void setAsync(Boolean async) {
+    public void setAsync(boolean async) {
         this.async = async;
+    }
+
+    public boolean getRollback() {
+        return rollback;
+    }
+
+    @DataBoundSetter
+    public void setRollback(boolean rollback) {
+        this.rollback = rollback;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    @DataBoundSetter
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
     }
 
     // endregion

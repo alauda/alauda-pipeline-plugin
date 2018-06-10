@@ -6,11 +6,8 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.Builder;
 import io.alauda.jenkins.plugins.pipeline.AlaudaConfiguration;
 import io.alauda.jenkins.plugins.pipeline.alauda.IAlaudaConfig;
-import io.alauda.jenkins.plugins.pipeline.dsl.service.DeployStep;
-import io.alauda.jenkins.plugins.pipeline.dsl.service.RetrieveStep;
 import io.alauda.jenkins.plugins.pipeline.utils.MissingJenkinsConfigException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
@@ -21,7 +18,6 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
 public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleBuildStep, IAlaudaConfig {
@@ -67,7 +63,7 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
                         Strings.isNullOrEmpty(this.account) ||
                         Strings.isNullOrEmpty(this.apiToken) ||
                         Strings.isNullOrEmpty(this.clusterName)) {
-            throw MissingJenkinsConfigException.NewMissingAlaudaConfig();
+            throw MissingJenkinsConfigException.newMissingAlaudaConfig();
         }
     }
 
@@ -98,10 +94,9 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
         return null;
     }
 
-    @Nonnull
     @Override
     public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
-        return null;
+        return project.getActions();
     }
 
     @Override
