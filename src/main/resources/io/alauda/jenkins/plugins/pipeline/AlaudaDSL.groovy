@@ -806,7 +806,6 @@ class AlaudaDSL implements Serializable {
                             alauda.script.containerTemplate(name: 'ci-container', image: "${ciImage}", ttyEnabled: true,
                                 envVars: [alauda.script.envVar(key: "LANG", value: "C.UTF-8")]),
                             alauda.script.containerTemplate(name: 'jnlp', image: "${jnlpImage}", ttyEnabled: true,
-                                args: "${computer.jnlpmac} ${computer.name}",
                                 envVars: [alauda.script.envVar(key: "LANG", value: "C.UTF-8")])
                     ],
                     volumes: this.getVolumes()
