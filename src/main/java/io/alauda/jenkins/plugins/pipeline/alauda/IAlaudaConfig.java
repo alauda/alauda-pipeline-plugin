@@ -15,6 +15,8 @@ public interface IAlaudaConfig {
 
     String getNamespace();
 
+    String getProjectName();
+
     default boolean isVerbose() {
         return false;
     }

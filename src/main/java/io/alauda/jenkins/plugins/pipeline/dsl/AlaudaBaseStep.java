@@ -32,16 +32,17 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
     protected String spaceName;
     protected String clusterName;
     protected String namespace;
+    protected String projectName;
 
     public AlaudaBaseStep() throws MissingJenkinsConfigException {
-        this(null, null, null, false);
+        this(null, null, null, null, false);
     }
 
     public AlaudaBaseStep(boolean verbose) throws MissingJenkinsConfigException {
-        this(null, null, null, verbose);
+        this(null, null, null, null, verbose);
     }
 
-    public AlaudaBaseStep(String spaceName, String clusterName, String namespace, boolean verbose) throws MissingJenkinsConfigException {
+    public AlaudaBaseStep(String spaceName, String clusterName, String namespace, String projectName, boolean verbose) throws MissingJenkinsConfigException {
         AlaudaConfiguration config = AlaudaConfiguration.get();
         this.consoleURL = config.getConsoleURL();
         this.apiEndpoint = config.getApiEndpoint();
@@ -51,6 +52,7 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
         this.spaceName = Strings.isNullOrEmpty(spaceName) ? config.getSpaceName() : spaceName;
         this.clusterName = Strings.isNullOrEmpty(clusterName) ? config.getClusterName() : clusterName;
         this.namespace = Strings.isNullOrEmpty(namespace) ? config.getNamespace() : namespace;
+        this.projectName = Strings.isNullOrEmpty(projectName) ? config.getProjectName() : projectName;
         this.verbose = verbose;
 
         this.validArgs();
@@ -176,6 +178,14 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
         this.namespace = namespace;
     }
 
+    @Override
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
     // endregion
 
 

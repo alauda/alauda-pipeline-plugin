@@ -65,10 +65,11 @@ public class DeployStep extends AlaudaBaseStep {
     }
 
     public String toString() {
-        return String.format("alaudaService: clusterName:%s, namespace:%s, serviceID:%s",
+        return String.format("alaudaService: clusterName:%s, namespace:%s, serviceID:%s, projectName:%s",
                 this.getClusterName(),
                 this.getNamespace(),
-                this.getServiceID()
+                this.getServiceID(),
+                this.getProjectName()
         );
     }
 

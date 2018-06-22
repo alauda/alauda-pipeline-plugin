@@ -137,9 +137,11 @@ Get a service object
 ```
 script{
     alauda.withCluster("cluster_name", "k8s_namespace"){
-        alauda.service("ServiceNotExists").
-            withYaml("./service.yaml").
-            deploy()
+        alauda..withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withYaml("./service.yaml").
+                deploy()
+        }
     }
 }
 ```
@@ -149,10 +151,12 @@ when use service yaml to deploy service, you can invoke autoReplaceImageTag to u
 ```
 script{
     alauda.withCluster("cluster_name", "k8s_namespace"){
-        alauda.service("ServiceNotExists").
-            withYaml("./service.yaml").
-            autoReplaceImageTag("index.alauda.cn/alauda/demo", "v1").
-            deploy()
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withYaml("./service.yaml").
+                autoReplaceImageTag("index.alauda.cn/alauda/demo", "v1").
+                deploy()
+        }
     }
 }
 ```
@@ -162,11 +166,13 @@ Auto rollback service when deploy failure
 ```
 script{
     alauda.withCluster("cluster_name", "k8s_namespace"){
-        alauda.service("ServiceNotExists").
-            withContainer("container-0").
-            withImage("index.alauda/alauda/demo").
-            withTag("v1").
-            autoRollbackOnFail()
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withContainer("container-0").
+                withImage("index.alauda/alauda/demo").
+                withTag("v1").
+                autoRollbackOnFail()
+        }
     }
 }
 ```
@@ -175,12 +181,14 @@ script{
 ```
 script{
     alauda.withCluster("cluster_name", "k8s_namespace"){
-        alauda.service("ServiceNotExists").
-            withContainer("container-0").
-            withImage("index.alauda/alauda/demo").
-            withTag("v1").
-            withEnvVarFrom("envname", "envkey", "configmapname").
-            autoRollbackOnFail()
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withContainer("container-0").
+                withImage("index.alauda/alauda/demo").
+                withTag("v1").
+                withEnvVarFrom("envname", "envkey", "configmapname").
+                autoRollbackOnFail()
+        }
     }
 }
 ```
@@ -189,12 +197,14 @@ script{
 ```
 script{
     alauda.withCluster("cluster_name", "k8s_namespace"){
-        alauda.service("ServiceNotExists").
-            withContainer("container-0").
-            withImage("index.alauda/alauda/demo").
-            withTag("v1").
-            withEnvFrom("configmapname").
-            autoRollbackOnFail()
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withContainer("container-0").
+                withImage("index.alauda/alauda/demo").
+                withTag("v1").
+                withEnvFrom("configmapname").
+                autoRollbackOnFail()
+        }
     }
 }
 ```

@@ -71,6 +71,7 @@ class AlaudaDSL implements Serializable {
         private String spaceName;
         private String clusterName;
         private String namespace;
+        private String projectName;
 
         protected Context(Context parent) {
             this.parent = parent;
@@ -121,6 +122,21 @@ class AlaudaDSL implements Serializable {
             return this;
         }
 
+        String getProjectName() {
+            if (this.projectName != null) {
+                return this.projectName;
+            }
+            if (parent != null) {
+                return parent.getProjectName();
+            }
+            return null
+        }
+
+        Context setProjectName(String projectName) {
+            this.projectName = projectName;
+            return this;
+        }
+
         def <V> V run(Closure<V> body) {
             AlaudaDSL.Context last = currentContext;
             currentContext = this;
@@ -163,6 +179,13 @@ class AlaudaDSL implements Serializable {
         }
     }
 
+    def <V> V withProject(String projectName, Closure<V> body) {
+        Context context = new Context(currentContext).setProjectName(projectName);
+        return context.run {
+            return body()
+        }
+    }
+
     String consoleURL() {
         return alaudaConfiguration.getConsoleURL()
     }
@@ -192,6 +215,12 @@ class AlaudaDSL implements Serializable {
         return currentContext.getNamespace()
     }
 
+    String project() {
+        if (currentContext == null) {
+            return alaudaConfiguration.getProjectName()
+        }
+        return currentContext.getProjectName()
+    }
     // endregion
 
     // region build operation
@@ -250,8 +279,8 @@ class AlaudaDSL implements Serializable {
     }
 
 //    @NonCPS
-    def ServiceDetails retrieveServiceDetails(String serviceName, String clusterName, String namespace) {
-        ServiceDetails details = script.alaudaRetrieveService serviceName: serviceName, clusterName: clusterName, namespace: namespace
+    def ServiceDetails retrieveServiceDetails(String serviceName, String clusterName, String namespace, String projectName) {
+        ServiceDetails details = script.alaudaRetrieveService serviceName: serviceName, clusterName: clusterName, namespace: namespace, projectName: projectName
         script.println(details)
         return details;
     }
@@ -443,7 +472,7 @@ class AlaudaDSL implements Serializable {
             def argsDefine = ["async"]
             Map map = alauda.parseArgs(argsDefine, args)
             boolean async = map.get("async", false);
-            ServiceDetails service = alauda.retrieveServiceDetails(this.name, alauda.cluster(), alauda.namespace());
+            ServiceDetails service = alauda.retrieveServiceDetails(this.name, alauda.cluster(), alauda.namespace(), alauda.project());
 
             // no yaml , must update service
             if(this.yamlFile == null || this.yamlFile==""){
