@@ -37,7 +37,7 @@ public class RetrieveStep extends AlaudaBaseStep {
         if (!Strings.isNullOrEmpty(serviceID)) {
             return alauda.retrieveService(serviceID);
         }else{
-            return alauda.retrieveService(serviceName, clusterName, namespace);
+            return alauda.retrieveService(serviceName, clusterName, namespace, projectName);
         }
     }
 
@@ -75,6 +75,7 @@ public class RetrieveStep extends AlaudaBaseStep {
             String serviceName = Converter.getDataAsString(arguments, "serviceName");
             String clusterName = Converter.getDataAsString(arguments, "clusterName");
             String namespace = Converter.getDataAsString(arguments, "namespace");
+            String projectName = Converter.getDataAsString(arguments, "projectName");
 
             if (Strings.isNullOrEmpty(serviceID) && Strings.isNullOrEmpty(serviceName)) {
                 throw new IllegalArgumentException("Arguments missed: either serviceID or serviceName is needed");
@@ -88,6 +89,7 @@ public class RetrieveStep extends AlaudaBaseStep {
                 step.setServiceName(serviceName);
                 step.setClusterName(clusterName);
                 step.setNamespace(namespace);
+                step.setProjectName(projectName);
             }
             return step;
         }

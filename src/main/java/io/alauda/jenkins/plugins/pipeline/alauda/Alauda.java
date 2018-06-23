@@ -42,6 +42,7 @@ public class Alauda {
     protected String spaceName;
     protected String clusterName;
     protected String namespace;
+    protected String projectName;
 
     protected boolean verbose;
     protected Logger logger;
@@ -64,11 +65,12 @@ public class Alauda {
                 config.getSpaceName(),
                 config.getClusterName(),
                 config.getNamespace(),
+                config.getProjectName(),
                 config.isVerbose()
         );
     }
 
-    public Alauda(String consoleURL, String endpoint, String token, String account, String spaceName, String clusterName, String namespace, boolean isVerbose) {
+    public Alauda(String consoleURL, String endpoint, String token, String account, String spaceName, String clusterName, String namespace, String projectName, boolean isVerbose) {
         this.consoleURL = consoleURL;
         this.apiToken = token;
         this.apiEndpoint = endpoint;
@@ -77,6 +79,7 @@ public class Alauda {
         this.verbose = isVerbose;
         this.clusterName = clusterName;
         this.namespace = namespace;
+        this.projectName = projectName;
 
         this.client = new AlaudaClient(endpoint, namespace, apiToken, spaceName);
         this.serviceClient = client.getServiceClient();
@@ -335,12 +338,12 @@ public class Alauda {
         return serviceClient.retrieveService(serviceID);
     }
 
-    public ServiceDetails retrieveService(String serviceName, String clusterName, String namespace) throws IOException {
-        return serviceClient.retrieveService(serviceName, clusterName, namespace);
+    public ServiceDetails retrieveService(String serviceName, String clusterName, String namespace, String projectName) throws IOException {
+        return serviceClient.retrieveService(serviceName, clusterName, namespace, projectName);
     }
 
-    public void deleteService(String serviceName, String clusterName, String namespace) throws IOException {
-        serviceClient.deleteService(serviceName, clusterName, namespace);
+    public void deleteService(String serviceName, String clusterName, String namespace, String projectName) throws IOException {
+        serviceClient.deleteService(serviceName, clusterName, namespace, projectName);
     }
 
     public String createService(ServiceCreatePayload payload,
