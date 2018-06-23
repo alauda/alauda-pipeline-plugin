@@ -648,7 +648,9 @@ class AlaudaDSL implements Serializable {
         private AlaudaDSL alauda;
         private String imageFullName
         private String ciCredentialsId
+        private String jnlpCredentialsId
         private String ciImage
+        private String jnlpImage
         private Closure ciBody
         private String contextPath
         private String dockerfileLocation
@@ -690,6 +692,12 @@ class AlaudaDSL implements Serializable {
             this.ciCredentialsId = credentialsId
             this.ciImage = ciImage
             this.ciBody = body
+            return this
+        }
+
+        Build withJnlpImage(String jnlpImage, String credentialsId) {
+            this.jnlpCredentialsId = credentialsId
+            this.jnlpImage = jnlpImage
             return this
         }
 
@@ -805,6 +813,9 @@ class AlaudaDSL implements Serializable {
         Build startBuild(){
             this.ciEnabled = true
             String registry = AlaudaDSL.parseRegistry(ciImage)
+            if (this.jnlpImage == null || this.jnlpImage == "") {
+                this.jnlpImage = "jenkins/jnlp-slave:alpine"
+            }
 
             if(this.ciCredentialsId != null && this.ciCredentialsId != "") {
                 alauda.script.withEnv(["registry=${registry}"]) {
@@ -822,6 +833,8 @@ class AlaudaDSL implements Serializable {
                     label: label,
                     containers:[
                             alauda.script.containerTemplate(name: 'ci-container', image: "${ciImage}", ttyEnabled: true,
+                                envVars: [alauda.script.envVar(key: "LANG", value: "C.UTF-8")]),
+                            alauda.script.containerTemplate(name: 'jnlp', image: "${jnlpImage}", ttyEnabled: true,
                                 envVars: [alauda.script.envVar(key: "LANG", value: "C.UTF-8")])
                     ],
                     volumes: this.getVolumes()
