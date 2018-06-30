@@ -6,11 +6,8 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.*;
 import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.Builder;
 import io.alauda.jenkins.plugins.pipeline.AlaudaConfiguration;
 import io.alauda.jenkins.plugins.pipeline.alauda.IAlaudaConfig;
-import io.alauda.jenkins.plugins.pipeline.dsl.service.DeployStep;
-import io.alauda.jenkins.plugins.pipeline.dsl.service.RetrieveStep;
 import io.alauda.jenkins.plugins.pipeline.utils.MissingJenkinsConfigException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
@@ -21,7 +18,6 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
 public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleBuildStep, IAlaudaConfig {
@@ -36,16 +32,17 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
     protected String spaceName;
     protected String clusterName;
     protected String namespace;
+    protected String projectName;
 
     public AlaudaBaseStep() throws MissingJenkinsConfigException {
-        this(null, null, null, false);
+        this(null, null, null, null, false);
     }
 
     public AlaudaBaseStep(boolean verbose) throws MissingJenkinsConfigException {
-        this(null, null, null, verbose);
+        this(null, null, null, null, verbose);
     }
 
-    public AlaudaBaseStep(String spaceName, String clusterName, String namespace, boolean verbose) throws MissingJenkinsConfigException {
+    public AlaudaBaseStep(String spaceName, String clusterName, String namespace, String projectName, boolean verbose) throws MissingJenkinsConfigException {
         AlaudaConfiguration config = AlaudaConfiguration.get();
         this.consoleURL = config.getConsoleURL();
         this.apiEndpoint = config.getApiEndpoint();
@@ -55,6 +52,7 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
         this.spaceName = Strings.isNullOrEmpty(spaceName) ? config.getSpaceName() : spaceName;
         this.clusterName = Strings.isNullOrEmpty(clusterName) ? config.getClusterName() : clusterName;
         this.namespace = Strings.isNullOrEmpty(namespace) ? config.getNamespace() : namespace;
+        this.projectName = Strings.isNullOrEmpty(projectName) ? config.getProjectName() : projectName;
         this.verbose = verbose;
 
         this.validArgs();
@@ -67,7 +65,7 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
                         Strings.isNullOrEmpty(this.account) ||
                         Strings.isNullOrEmpty(this.apiToken) ||
                         Strings.isNullOrEmpty(this.clusterName)) {
-            throw MissingJenkinsConfigException.NewMissingAlaudaConfig();
+            throw MissingJenkinsConfigException.newMissingAlaudaConfig();
         }
     }
 
@@ -98,10 +96,9 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
         return null;
     }
 
-    @Nonnull
     @Override
     public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
-        return null;
+        return project.getActions();
     }
 
     @Override
@@ -181,6 +178,14 @@ public abstract class AlaudaBaseStep extends AbstractStepImpl implements SimpleB
         this.namespace = namespace;
     }
 
+    @Override
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
     // endregion
 
 

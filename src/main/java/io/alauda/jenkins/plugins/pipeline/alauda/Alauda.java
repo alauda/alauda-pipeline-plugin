@@ -42,6 +42,7 @@ public class Alauda {
     protected String spaceName;
     protected String clusterName;
     protected String namespace;
+    protected String projectName;
 
     protected boolean verbose;
     protected Logger logger;
@@ -64,11 +65,12 @@ public class Alauda {
                 config.getSpaceName(),
                 config.getClusterName(),
                 config.getNamespace(),
+                config.getProjectName(),
                 config.isVerbose()
         );
     }
 
-    public Alauda(String consoleURL, String endpoint, String token, String account, String spaceName, String clusterName, String namespace, boolean isVerbose) {
+    public Alauda(String consoleURL, String endpoint, String token, String account, String spaceName, String clusterName, String namespace, String projectName, boolean isVerbose) {
         this.consoleURL = consoleURL;
         this.apiToken = token;
         this.apiEndpoint = endpoint;
@@ -77,6 +79,7 @@ public class Alauda {
         this.verbose = isVerbose;
         this.clusterName = clusterName;
         this.namespace = namespace;
+        this.projectName = projectName;
 
         this.client = new AlaudaClient(endpoint, namespace, apiToken, spaceName);
         this.serviceClient = client.getServiceClient();
@@ -160,12 +163,12 @@ public class Alauda {
     }
 
     boolean monitorUpdateService(String serviceID, int timeout) throws InterruptedException, IOException {
-        DateTime deadline = new DateTime().plusMillis(timeout * 1000 * 1000);
+        DateTime deadline = new DateTime().plusMillis(timeout * 1000);
         int sleepMillis = 10000; // 10s
         int timer = 0;
         while (true) {
             if (deadline.isBeforeNow()) {
-                throw new InterruptedException(String.format("Deploy timeout, more than %d minutes!", timeout));
+                throw new InterruptedException(String.format("Timeout, more than %d minutes!", timeout));
             }
 
             ServiceDetails details;
@@ -195,8 +198,6 @@ public class Alauda {
         int interval = 5000;
         int timeoutTimes = timeoutMillis / interval;
 
-        Boolean buildSuccessed = false;
-
         int timer = 0;
         while (true) {
             if (timer >= timeoutTimes) {
@@ -213,6 +214,10 @@ public class Alauda {
                     logger.printf("Watch build status network error %s , will try again", ex.getMessage());
                     build = this.buildClient.retrieveBuild(buildID);
                 }
+            }
+
+            if (build == null) {
+                throw new AbortException("Not retrieve build");
             }
 
             String status = getBuildStatus(build);
@@ -268,10 +273,15 @@ public class Alauda {
 
         payload.setStatus(resultStr);
 
-        String jenkinsUrl = JenkinsLocationConfiguration.get().getUrl();
-        if (!jenkinsUrl.endsWith("/")) {
-            jenkinsUrl = jenkinsUrl + "/";
+        String jenkinsUrl = "";
+        JenkinsLocationConfiguration config = JenkinsLocationConfiguration.get();
+        if (config != null) {
+            jenkinsUrl = config.getUrl();
+            if (jenkinsUrl != null && !jenkinsUrl.endsWith("/")) {
+                jenkinsUrl = jenkinsUrl + "/";
+            }
         }
+
         payload.setJobURL(jenkinsUrl + this.run.getUrl());
 
         String cause = getCause(this.run.getCauses());
@@ -328,35 +338,65 @@ public class Alauda {
         return serviceClient.retrieveService(serviceID);
     }
 
-    public ServiceDetails retrieveService(String serviceName, String clusterName, String namespace) throws IOException {
-        return serviceClient.retrieveService(serviceName, clusterName, namespace);
+    public ServiceDetails retrieveService(String serviceName, String clusterName, String namespace, String projectName) throws IOException {
+        return serviceClient.retrieveService(serviceName, clusterName, namespace, projectName);
     }
 
-    public void deleteService(String serviceName, String clusterName, String namespace) throws IOException {
-        serviceClient.deleteService(serviceName, clusterName, namespace);
+    public void deleteService(String serviceName, String clusterName, String namespace, String projectName) throws IOException {
+        serviceClient.deleteService(serviceName, clusterName, namespace, projectName);
     }
 
     public String createService(ServiceCreatePayload payload,
-                                Boolean async) throws IOException {
-        return serviceClient.createService(payload);
+                                Boolean async, int timeout) throws IOException, InterruptedException {
+        String serviceID = serviceClient.createService(payload);
+        logger.printf("createService: %s has been started, Show the details -> %s\n", serviceID, getAlaudaServiceURL(serviceID));
+        if (async) {
+            return serviceID;
+        }
+        LOGGER.info("----> monitor the create ---->");
+        boolean isSucceed = monitorUpdateService(serviceID, timeout);
+
+        if (isSucceed) {
+            return serviceID;
+        }
+
+        //not success
+        throw new AbortException(String.format("createService: %s has been failed.  Show the details -> %s %n",
+                serviceID, getAlaudaServiceURL(serviceID)));
+
     }
 
     public String updateService(String serviceID, ServiceUpdatePayload payload,
-                                Boolean async, int timeout) throws IOException, InterruptedException {
+                                Boolean async, boolean rollbackOnFail, int timeout) throws IOException, InterruptedException {
         serviceID = serviceClient.updateService(serviceID, payload);
-        logger.printf("updateService: %s has been started. Show the details -> %s \n", serviceID,
+        logger.printf("updateService: %s has been started. Show the details -> %s %n", serviceID,
                 getAlaudaServiceURL(serviceID));
         if (async) {
             return serviceID;
         }
 
-        LOGGER.info("----> monitor the update ---->");
+        logger.println("waiting for the service to update is complete...");
         boolean isSucceed = monitorUpdateService(serviceID, timeout);
-        if (!isSucceed) {
-            throw new AbortException(String.format("updateService: %s has been failed. Show the details -> %s \n",
+        if (isSucceed) {
+            return serviceID;
+        }
+
+        // not success
+        if (rollbackOnFail) {
+            logger.println("updated service failure, will try to rollback");
+            serviceClient.rollbackService(serviceID);
+            boolean rollbackSucceed = monitorUpdateService(serviceID, timeout);
+            if (rollbackSucceed) {
+                logger.println("rollbacked service finished");
+            } else {
+                logger.println("rollbacked service failure");
+            }
+            throw new AbortException(String.format("updateService: %s has been failed, already rollback.  Show the details -> %s %n",
+                    serviceID, getAlaudaServiceURL(serviceID)));
+        } else {
+            throw new AbortException(String.format("updateService: %s has been failed.  Show the details -> %s %n",
                     serviceID, getAlaudaServiceURL(serviceID)));
         }
-        return serviceID;
     }
 
     private String getAlaudaServiceURL(String serviceID) throws IOException {

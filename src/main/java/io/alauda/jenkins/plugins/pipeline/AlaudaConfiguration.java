@@ -23,6 +23,8 @@ public class AlaudaConfiguration extends GlobalConfiguration implements IAlaudaC
     private String spaceName;
     private String clusterName;
     private String namespace;
+    private String projectName;
+
 
     public AlaudaConfiguration() {
         load();  // When Jenkins is restarted, load any saved configuration from disk.
@@ -33,8 +35,8 @@ public class AlaudaConfiguration extends GlobalConfiguration implements IAlaudaC
     }
 
     public String toString() {
-        return String.format("Endpoint:%s, account: %s, clusterName: %s; namespace:%s",
-                this.apiEndpoint, this.account, this.clusterName, this.namespace);
+        return String.format("Endpoint:%s, account: %s, clusterName: %s; namespace:%s; projectName:%s;",
+                this.apiEndpoint, this.account, this.clusterName, this.namespace, this.projectName);
     }
 
     @Override
@@ -141,6 +143,23 @@ public class AlaudaConfiguration extends GlobalConfiguration implements IAlaudaC
     }
 
     public FormValidation doCheckNamespace(@QueryParameter String value) {
+        return FormValidation.validateRequired(value);
+    }
+
+    public String getProjectName()  {
+        if (Strings.isNullOrEmpty(projectName)){
+            return "";
+        }
+        return projectName;
+    }
+
+    @DataBoundSetter
+    public void setProjectName(String projectName) {
+        this.projectName = Util.fixEmptyAndTrim(projectName);
+        save();
+    }
+
+    public FormValidation doCheckProjectName(@QueryParameter String value) {
         return FormValidation.validateRequired(value);
     }
     // endregion

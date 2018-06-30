@@ -130,6 +130,86 @@ script{
 ### alauda.build
 
 
+## alauda.service
+Get a service object
+
+### withYaml
+```
+script{
+    alauda.withCluster("cluster_name", "k8s_namespace"){
+        alauda..withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withYaml("./service.yaml").
+                deploy()
+        }
+    }
+}
+```
+### autoReplaceImageTag
+when use service yaml to deploy service, you can invoke autoReplaceImageTag to update image tag in yaml
+, you cannot use it , when specify one container in service.
+```
+script{
+    alauda.withCluster("cluster_name", "k8s_namespace"){
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withYaml("./service.yaml").
+                autoReplaceImageTag("index.alauda.cn/alauda/demo", "v1").
+                deploy()
+        }
+    }
+}
+```
+### autoRollbackOnFail
+Auto rollback service when deploy failure
+
+```
+script{
+    alauda.withCluster("cluster_name", "k8s_namespace"){
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withContainer("container-0").
+                withImage("index.alauda/alauda/demo").
+                withTag("v1").
+                autoRollbackOnFail()
+        }
+    }
+}
+```
+
+### withEnvVarFrom
+```
+script{
+    alauda.withCluster("cluster_name", "k8s_namespace"){
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withContainer("container-0").
+                withImage("index.alauda/alauda/demo").
+                withTag("v1").
+                withEnvVarFrom("envname", "envkey", "configmapname").
+                autoRollbackOnFail()
+        }
+    }
+}
+```
+
+### withEnvFrom
+```
+script{
+    alauda.withCluster("cluster_name", "k8s_namespace"){
+        alauda.withProject("dev"){
+            alauda.service("ServiceNotExists").
+                withContainer("container-0").
+                withImage("index.alauda/alauda/demo").
+                withTag("v1").
+                withEnvFrom("configmapname").
+                autoRollbackOnFail()
+        }
+    }
+}
+```
+
+
 ## Examples
 
 ```

@@ -16,6 +16,10 @@ public class MissingJenkinsConfigException extends Exception {
 
     private String jenkinsConfigURL() {
         JenkinsLocationConfiguration config = JenkinsLocationConfiguration.get();
+        if ( config == null ){
+            return null;
+        }
+
         String jenkinsUrl = config.getUrl();
         // todo here is null
         if (!Strings.isNullOrEmpty(jenkinsUrl) && !jenkinsUrl.endsWith("/")) {
@@ -25,7 +29,7 @@ public class MissingJenkinsConfigException extends Exception {
 
     }
 
-    public static MissingJenkinsConfigException NewMissingAlaudaConfig() {
+    public static MissingJenkinsConfigException newMissingAlaudaConfig() {
         return new MissingJenkinsConfigException("Alauda");
     }
 
