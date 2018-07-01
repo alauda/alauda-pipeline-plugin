@@ -39,7 +39,7 @@
         <dependency>
             <groupId>io.alauda.client</groupId>
             <artifactId>alauda-jenkins-client</artifactId>
-            <version>1.0.7-SNAPSHOT</version>
+            <version>1.0.7</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
