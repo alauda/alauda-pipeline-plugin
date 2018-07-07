@@ -1,6 +1,7 @@
 package io.alauda.jenkins.plugins.pipeline
 
 import com.cloudbees.groovy.cps.NonCPS
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.google.common.base.Strings
 import com.fasterxml.jackson.databind.ObjectMapper
 import groovy.json.JsonSlurperClassic
@@ -457,13 +458,17 @@ class AlaudaDSL implements Serializable {
         @NonCPS
         def ServiceCreatePayload convertCreatePaylod(payload){
             String jsonStr = new JsonOutput().toJson(payload)
-            return new ObjectMapper().readValue(jsonStr, ServiceCreatePayload.class)
+            def objectMapper = new ObjectMapper();
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false)
+            return objectMapper.readValue(jsonStr, ServiceCreatePayload.class)
         }
 
         @NonCPS
         def ServiceUpdatePayload convertUpdatePaylod(payload){
             String jsonStr = new JsonOutput().toJson(payload)
-            return new ObjectMapper().readValue(jsonStr, ServiceUpdatePayload.class)
+            def objectMapper = new ObjectMapper();
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false)
+            return objectMapper.readValue(jsonStr, ServiceUpdatePayload.class)
         }
 
         String deploy(Object... args) {
