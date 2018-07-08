@@ -347,8 +347,8 @@ public class Alauda {
     }
 
     public String createService(ServiceCreatePayload payload,
-                                Boolean async, int timeout) throws IOException, InterruptedException {
-        String serviceID = serviceClient.createService(payload);
+                                Boolean async, int timeout, String projectName) throws IOException, InterruptedException {
+        String serviceID = serviceClient.createService(payload, projectName);
         logger.printf("createService: %s has been started, Show the details -> %s\n", serviceID, getAlaudaServiceURL(serviceID));
         if (async) {
             return serviceID;

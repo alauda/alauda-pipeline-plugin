@@ -530,7 +530,7 @@ class AlaudaDSL implements Serializable {
 
             if(service == null){
                 // will create it
-                def serviceID = alauda.script.alaudaDeployService serviceName: this.name, payload: convertCreatePaylod(payload), async: async
+                def serviceID = alauda.script.alaudaDeployService serviceName: this.name, payload: convertCreatePaylod(payload), async: async, project: alauda.project()
                 return serviceID
             }else{
                 // will update it
