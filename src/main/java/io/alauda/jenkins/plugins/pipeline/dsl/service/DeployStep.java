@@ -59,6 +59,7 @@ public class DeployStep extends AlaudaBaseStep {
     private ServiceCreatePayload createPayload;
     private int timeout;
 
+
     @DataBoundConstructor
     public DeployStep() throws MissingJenkinsConfigException {
         super();
@@ -80,7 +81,7 @@ public class DeployStep extends AlaudaBaseStep {
             getLOGGER().info("env from -->"+ updatePayload);
             return alauda.updateService(serviceID, updatePayload, getAsync(), rollback, getTimeout());
         } else {
-            return alauda.createService(createPayload, getAsync(), getTimeout());
+            return alauda.createService(createPayload, getAsync(), getTimeout(), getProjectName());
         }
     }
 
@@ -127,6 +128,10 @@ public class DeployStep extends AlaudaBaseStep {
             int timeout = Converter.getDataAsInt(arguments, "timeout", 600);
             step.setTimeout(timeout);
 
+            String projectName = Converter.getDataAsString(arguments, "project");
+            if (projectName != ""){
+                step.setProjectName(projectName);
+            }
 
             String serviceID = Converter.getDataAsString(arguments, "serviceID");
             if (!Strings.isNullOrEmpty(serviceID)) {
@@ -198,6 +203,15 @@ public class DeployStep extends AlaudaBaseStep {
     @DataBoundSetter
     public void setTimeout(int timeout) {
         this.timeout = timeout;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    @DataBoundSetter
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 
     // endregion
