@@ -129,7 +129,7 @@ public class DeployStep extends AlaudaBaseStep {
             step.setTimeout(timeout);
 
             String projectName = Converter.getDataAsString(arguments, "project");
-            if (projectName != ""){
+            if (!Strings.isNullOrEmpty(projectName)){
                 step.setProjectName(projectName);
             }
 
