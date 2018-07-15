@@ -497,7 +497,7 @@ class AlaudaDSL implements Serializable {
                 if (containers.containsKey(firstContainer.name)) {
                     zeroContainer = containers.get(firstContainer.name)
                     updateContainer(firstContainer, zeroContainer)
-                    containers.remove(zeroContainer)
+                    containers.remove(firstContainer.name)
                 }
 
                 containers.each {

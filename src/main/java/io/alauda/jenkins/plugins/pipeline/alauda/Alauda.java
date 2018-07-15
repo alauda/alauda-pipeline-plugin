@@ -547,7 +547,7 @@ public class Alauda {
         }
 
         public static String getServiceUrl(String endpoint, String serviceID) throws IOException {
-            return AlaudaPath.combine(endpoint, String.format("/console/service/history/detail/%s", serviceID));
+            return AlaudaPath.combine(endpoint, String.format("/console/k8s_service/detail/%s", serviceID));
         }
 
         public static String combine(String baseUrl, String relativeUrl) throws IOException {
