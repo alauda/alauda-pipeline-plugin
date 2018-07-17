@@ -12,6 +12,7 @@ import io.alauda.model.Kubernete
 import io.alauda.model.ServiceCreatePayload
 import io.alauda.model.ServiceDetails
 import io.alauda.model.ServiceUpdatePayload
+import io.alauda.model.IntegrationDetails
 
 import org.yaml.snakeyaml.Yaml
 
@@ -271,6 +272,74 @@ class AlaudaDSL implements Serializable {
         )
     }
     // endregion
+
+     @NonCPS
+     def IntegrationDetails retrieveIntegration(String instanceUUID, String projectName) {
+         IntegrationDetails details = script.alaudaRetrieveIntegration instanceUUID: instanceUUID, projectName: projectName
+         script.println(details)
+         return details
+     }
+
+    def integration(String instanceUUID) {
+        script.printf("alauda.integration('%s')", instanceUUID)
+        return new Integration(alauda: this, name: instanceUUID)
+    }
+
+    def integration(String instanceUUID, String projectName) {
+        script.printf("alauda.integration('%s %s')", instanceUUID, projectName)
+        return new Integration(alauda: this, name: instanceUUID, projectName: projectName)
+    }
+
+    def static class Integration implements Serializable {
+
+        private AlaudaDSL alauda
+        private String name
+        private IntegrationDetails integration
+        private String projectName
+
+        void println(String info) {
+            alauda.script.println(info)
+        }
+
+        void printf(String fm, Object[] objs) {
+            alauda.script.printf(fm, objs)
+        }
+
+        Integration withProject(String projectName) {
+            this.projectName = projectName
+            return this
+        }
+
+        Integration retrieve() {
+            if (this.projectName == null) {
+                this.integration = alauda.script.alaudaRetrieveIntegration instanceUUID: this.name, projectName: alauda.project()
+            } else {
+                this.integration = alauda.script.alaudaRetrieveIntegration instanceUUID: this.name, projectName: this.projectName
+            }
+            return this
+        }
+
+        String getToken() {
+            return this.integration.getFields().getToken()
+        }
+
+        String getEndpoint() {
+            return this.integration.getFields().getEndpoint()
+        }
+
+        String getProject() {
+            return this.projectName == null ? alauda.project() : this.projectName
+        }
+
+        @Override
+        public String toString() {
+            String projectname = this.projectName == null ? alauda.project() : this.projectName
+            return "Integration{" +
+                    "name='" + name + '\'' +
+                    ", projectName=" + projectname +
+                    '}'
+        }
+    }
 
     @NonCPS
     def ServiceDetails retrieveServiceDetails(String serviceID) {
