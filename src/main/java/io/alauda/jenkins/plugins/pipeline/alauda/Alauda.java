@@ -13,9 +13,11 @@ import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
 import io.alauda.client.AlaudaClient;
 import io.alauda.client.IBuildClient;
+import io.alauda.client.IIntegrationClient;
 import io.alauda.client.INotifactionClient;
 import io.alauda.client.IServiceClient;
 import io.alauda.jenkins.plugins.pipeline.dsl.notification.models.NotificationPayload;
+import io.alauda.model.IntegrationDetails;
 import io.alauda.model.ServiceCreatePayload;
 import io.alauda.model.ServiceDetails;
 import io.alauda.model.ServiceUpdatePayload;
@@ -28,7 +30,9 @@ import java.io.PrintStream;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
@@ -51,6 +55,7 @@ public class Alauda {
     private IServiceClient serviceClient;
     private IBuildClient buildClient;
     private INotifactionClient notifactionClient;
+    private IIntegrationClient integrationClient;
 
     public Run<?, ?> run;
     public Launcher launcher;
@@ -85,6 +90,7 @@ public class Alauda {
         this.serviceClient = client.getServiceClient();
         this.buildClient = client.getBuildClient();
         this.notifactionClient = client.getNotifactionClient();
+        this.integrationClient = client.getIntegrationClient();
     }
 
     public Alauda setJenkinsContext(Run<?, ?> run, Launcher launcher, TaskListener listener) {
@@ -332,6 +338,17 @@ public class Alauda {
     }
 
     // endregion
+    
+	// Integration
+	public IntegrationDetails retrieveIntegration(String instanceUUID, String projectName)
+			throws IOException {
+		IntegrationDetails integrationDetails = integrationClient
+				.retrieveIntegration(instanceUUID, projectName, account);
+		if (integrationDetails == null) {
+			throw new IOException("Integration is not found.");
+		}
+		return integrationDetails;
+	}
 
     // region Service operation
     public ServiceDetails retrieveService(String serviceID) throws IOException {
