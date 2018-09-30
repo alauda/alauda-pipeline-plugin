@@ -728,6 +728,9 @@ class AlaudaDSL implements Serializable {
         private String dockerfileLocation
         private boolean useImageCache
         private boolean ciEnabled
+        private boolean isNewVersion
+
+
 
         private HostPathVolume hostPathVolume
         private PVC pvc
@@ -850,8 +853,9 @@ class AlaudaDSL implements Serializable {
             if (this.ciEnabled){
                 alauda.script.dir("__dest__"){
                     // unstash dest if with ci step
-                    alauda.script.unstash "alaudaciDest"
-
+                    if (!this.isNewVersion){
+                        alauda.script.unstash "alaudaciDest"
+                    }
                     alauda.script.sh "docker build --no-cache=${useImageCache} -t ${imageFullName} -f ${dockerfile} ${context}"
                     alauda.script.printf("prepare to push image")
                     return this.image(imageFullName)
@@ -948,6 +952,7 @@ class AlaudaDSL implements Serializable {
         String imageCache = map.get("useImageCache", "true")
         build.useImageCache = imageCache.toLowerCase().equals("true")
         build.ciEnabled = false
+        build.isNewVersion = false
         return build
     }
 
