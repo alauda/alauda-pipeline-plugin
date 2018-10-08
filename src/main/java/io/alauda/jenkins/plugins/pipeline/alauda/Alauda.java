@@ -11,16 +11,9 @@ import hudson.plugins.git.Revision;
 import hudson.plugins.git.util.BuildData;
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
-import io.alauda.client.AlaudaClient;
-import io.alauda.client.IBuildClient;
-import io.alauda.client.IIntegrationClient;
-import io.alauda.client.INotifactionClient;
-import io.alauda.client.IServiceClient;
+import io.alauda.client.*;
 import io.alauda.jenkins.plugins.pipeline.dsl.notification.models.NotificationPayload;
-import io.alauda.model.IntegrationDetails;
-import io.alauda.model.ServiceCreatePayload;
-import io.alauda.model.ServiceDetails;
-import io.alauda.model.ServiceUpdatePayload;
+import io.alauda.model.*;
 import jenkins.model.JenkinsLocationConfiguration;
 import net.sf.json.JSONObject;
 import org.joda.time.DateTime;
@@ -53,6 +46,7 @@ public class Alauda {
     private String consoleURL;
 
     private IServiceClient serviceClient;
+    private IComponentClient componentClient;
     private IBuildClient buildClient;
     private INotifactionClient notifactionClient;
     private IIntegrationClient integrationClient;
@@ -88,6 +82,7 @@ public class Alauda {
 
         this.client = new AlaudaClient(endpoint, namespace, apiToken, spaceName);
         this.serviceClient = client.getServiceClient();
+        this.componentClient = client.getComponentClient();
         this.buildClient = client.getBuildClient();
         this.notifactionClient = client.getNotifactionClient();
         this.integrationClient = client.getIntegrationClient();
@@ -349,6 +344,17 @@ public class Alauda {
 		}
 		return integrationDetails;
 	}
+
+	// region component operation (application api 2.0)
+    public ComponentDetails retrieveComponent(String applicationName, String resourceType, String componentName, String clusterName, String namespace, String projectName) throws IOException {
+        return componentClient.retrieveComponent(applicationName, resourceType, componentName, clusterName, namespace, projectName);
+    }
+
+    public String updateComponent(String clusterName, String resourceType, String namespace, String componentName, Kubernete payload,
+                                Boolean async, boolean rollbackOnFail, int timeout) throws IOException, InterruptedException {
+        componentClient.updateComponent(clusterName, resourceType, namespace, componentName, payload);
+        return componentName;
+    }
 
     // region Service operation
     public ServiceDetails retrieveService(String serviceID) throws IOException {
