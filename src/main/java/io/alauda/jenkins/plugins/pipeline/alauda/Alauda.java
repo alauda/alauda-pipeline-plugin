@@ -11,14 +11,9 @@ import hudson.plugins.git.Revision;
 import hudson.plugins.git.util.BuildData;
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
-import io.alauda.client.AlaudaClient;
-import io.alauda.client.IBuildClient;
-import io.alauda.client.INotifactionClient;
-import io.alauda.client.IServiceClient;
+import io.alauda.client.*;
 import io.alauda.jenkins.plugins.pipeline.dsl.notification.models.NotificationPayload;
-import io.alauda.model.ServiceCreatePayload;
-import io.alauda.model.ServiceDetails;
-import io.alauda.model.ServiceUpdatePayload;
+import io.alauda.model.*;
 import jenkins.model.JenkinsLocationConfiguration;
 import net.sf.json.JSONObject;
 import org.joda.time.DateTime;
@@ -28,7 +23,9 @@ import java.io.PrintStream;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
@@ -49,8 +46,10 @@ public class Alauda {
     private String consoleURL;
 
     private IServiceClient serviceClient;
+    private IComponentClient componentClient;
     private IBuildClient buildClient;
     private INotifactionClient notifactionClient;
+    private IIntegrationClient integrationClient;
 
     public Run<?, ?> run;
     public Launcher launcher;
@@ -83,8 +82,10 @@ public class Alauda {
 
         this.client = new AlaudaClient(endpoint, namespace, apiToken, spaceName);
         this.serviceClient = client.getServiceClient();
+        this.componentClient = client.getComponentClient();
         this.buildClient = client.getBuildClient();
         this.notifactionClient = client.getNotifactionClient();
+        this.integrationClient = client.getIntegrationClient();
     }
 
     public Alauda setJenkinsContext(Run<?, ?> run, Launcher launcher, TaskListener listener) {
@@ -332,6 +333,28 @@ public class Alauda {
     }
 
     // endregion
+    
+	// Integration
+	public IntegrationDetails retrieveIntegration(String instanceUUID, String projectName)
+			throws IOException {
+		IntegrationDetails integrationDetails = integrationClient
+				.retrieveIntegration(instanceUUID, projectName, account);
+		if (integrationDetails == null) {
+			throw new IOException("Integration is not found.");
+		}
+		return integrationDetails;
+	}
+
+	// region component operation (application api 2.0)
+    public ComponentDetails retrieveComponent(String applicationName, String resourceType, String componentName, String clusterName, String namespace, String projectName) throws IOException {
+        return componentClient.retrieveComponent(applicationName, resourceType, componentName, clusterName, namespace, projectName);
+    }
+
+    public String updateComponent(String clusterName, String resourceType, String namespace, String componentName, Kubernete payload,
+                                Boolean async, boolean rollbackOnFail, int timeout) throws IOException, InterruptedException {
+        componentClient.updateComponent(clusterName, resourceType, namespace, componentName, payload);
+        return componentName;
+    }
 
     // region Service operation
     public ServiceDetails retrieveService(String serviceID) throws IOException {
@@ -347,8 +370,8 @@ public class Alauda {
     }
 
     public String createService(ServiceCreatePayload payload,
-                                Boolean async, int timeout) throws IOException, InterruptedException {
-        String serviceID = serviceClient.createService(payload);
+                                Boolean async, int timeout, String projectName) throws IOException, InterruptedException {
+        String serviceID = serviceClient.createService(payload, projectName);
         logger.printf("createService: %s has been started, Show the details -> %s\n", serviceID, getAlaudaServiceURL(serviceID));
         if (async) {
             return serviceID;
@@ -547,7 +570,7 @@ public class Alauda {
         }
 
         public static String getServiceUrl(String endpoint, String serviceID) throws IOException {
-            return AlaudaPath.combine(endpoint, String.format("/console/service/history/detail/%s", serviceID));
+            return AlaudaPath.combine(endpoint, String.format("/console/k8s_service/detail/%s", serviceID));
         }
 
         public static String combine(String baseUrl, String relativeUrl) throws IOException {
