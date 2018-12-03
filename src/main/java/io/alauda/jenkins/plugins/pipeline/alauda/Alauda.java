@@ -14,6 +14,7 @@ import hudson.triggers.TimerTrigger;
 import io.alauda.client.*;
 import io.alauda.jenkins.plugins.pipeline.dsl.notification.models.NotificationPayload;
 import io.alauda.model.*;
+import io.alauda.jenkins.plugins.pipeline.dsl.notification.models.NotificationPayloadByParams;
 import jenkins.model.JenkinsLocationConfiguration;
 import net.sf.json.JSONObject;
 import org.joda.time.DateTime;
@@ -80,7 +81,7 @@ public class Alauda {
         this.namespace = namespace;
         this.projectName = projectName;
 
-        this.client = new AlaudaClient(endpoint, namespace, apiToken, spaceName);
+        this.client = new AlaudaClient(endpoint, namespace, apiToken, spaceName, account);
         this.serviceClient = client.getServiceClient();
         this.componentClient = client.getComponentClient();
         this.buildClient = client.getBuildClient();
@@ -330,6 +331,89 @@ public class Alauda {
 
         payload.setBody(body);
         return payload;
+    }
+
+
+    public void sendNotificationByParams(String spaceName, String name, String projectName, Map<String, Object> params) throws IOException {
+        if (spaceName == null) {
+            spaceName = this.spaceName;
+        }
+
+        String payload = toJson(prepareNotificationPayload(params));
+        LOGGER.info("payload is -> %s " + payload);
+        logger.printf("Notification:[%s/%s] Sending ", spaceName, name);
+        this.notifactionClient.sendNotification(name, payload, spaceName, projectName);
+        logger.printf("Notification:[%s/%s] Sended SUCCEED", spaceName, name);
+    }
+
+    NotificationPayloadByParams prepareNotificationPayload(Map<String, Object> params) {
+        NotificationPayloadByParams payload = new NotificationPayloadByParams(params);
+
+        Result result = this.run.getResult();
+
+        String resultStr = result == null ? getState(run) : result.toString();
+
+        payload.SetParam("status", resultStr);
+
+        String jenkinsUrl = "";
+        JenkinsLocationConfiguration config = JenkinsLocationConfiguration.get();
+        if (config != null) {
+            jenkinsUrl = config.getUrl();
+            if (jenkinsUrl != null && !jenkinsUrl.endsWith("/")) {
+                jenkinsUrl = jenkinsUrl + "/";
+            }
+        }
+
+        payload.SetParam("job_url", jenkinsUrl + this.run.getUrl());
+
+        String cause = getCause(this.run.getCauses());
+        payload.SetParam("cause_text", cause);
+
+        Date startDate = new Date(this.run.getStartTimeInMillis());
+        payload.SetParam("start_at", startDate.toString());
+
+        if (result == Result.ABORTED
+                || result == Result.FAILURE
+                || result == Result.SUCCESS) {
+            Date endDate = new Date(this.run.getStartTimeInMillis() + this.run.getDuration());
+            payload.SetParam("ended_at", endDate.toString());
+        }
+
+        payload.SetParam("duration", this.run.getDurationString().toString());
+
+        String content = String.format("The Jenkins Job %s execute notification",
+                this.run.getFullDisplayName());
+        payload.setContent(content);
+
+        getBuildInfo(payload);
+
+        String subject = String.format("Jenkins job %s", this.run.getFullDisplayName());
+        payload.setSubject(subject);
+
+        return payload;
+    }
+
+    private void getBuildInfo(NotificationPayloadByParams payload) {
+        List<BuildData> actions = this.run.getActions(BuildData.class);
+        if (actions.size() >= 1) {
+            if (actions.size() > 1) {
+                LOGGER.warning(String.format("%s has multi build data action, will use first one.", this.run.getFullDisplayName()));
+            }
+            BuildData data = actions.get(0);
+            if (data.buildsByBranchName.size() >= 1) {
+                String branch = data.buildsByBranchName.keySet().toArray()[0].toString();
+                payload.SetParam("repo_branch", branch);
+                Revision revision = data.buildsByBranchName.get(branch).revision;
+                if (revision != null) {
+                    String commitID = revision.getSha1().name();
+                    payload.SetParam("repo_version", commitID);
+                }
+            }
+
+            if (data.remoteUrls.size() >= 1) {
+                payload.SetParam("repo", data.remoteUrls.toArray()[0].toString());
+            }
+        }
     }
 
     // endregion
