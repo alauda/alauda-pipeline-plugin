@@ -342,6 +342,29 @@ class AlaudaDSL implements Serializable {
         }
     }
 
+    def NewNotification() {
+        return new Notification(alauda: this)
+    }
+
+    def static class Notification implements Serializable {
+
+        private AlaudaDSL alauda
+
+        void println(String info) {
+            alauda.script.println(info)
+        }
+
+        void printf(String fm, Object[] objs) {
+            alauda.script.printf(fm, objs)
+        }
+
+        boolean send(String name, String projectName, Map<String, Object> params) {
+            boolean result = alauda.script.alaudaSendNotification name: name, projectName: projectName, params: params
+            return result
+        }
+
+    }
+
     @NonCPS
     def ServiceDetails retrieveServiceDetails(String serviceID) {
         ServiceDetails details = script.alaudaRetrieveService serviceID: serviceID
