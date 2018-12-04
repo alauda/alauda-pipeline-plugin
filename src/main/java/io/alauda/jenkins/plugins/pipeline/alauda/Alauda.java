@@ -353,7 +353,7 @@ public class Alauda {
 
         String resultStr = result == null ? getState(run) : result.toString();
 
-        payload.SetParam("status", resultStr);
+        payload.setParam("status", resultStr);
 
         String jenkinsUrl = "";
         JenkinsLocationConfiguration config = JenkinsLocationConfiguration.get();
@@ -364,22 +364,22 @@ public class Alauda {
             }
         }
 
-        payload.SetParam("job_url", jenkinsUrl + this.run.getUrl());
+        payload.setParam("job_url", jenkinsUrl + this.run.getUrl());
 
         String cause = getCause(this.run.getCauses());
-        payload.SetParam("cause_text", cause);
+        payload.setParam("cause_text", cause);
 
         Date startDate = new Date(this.run.getStartTimeInMillis());
-        payload.SetParam("start_at", startDate.toString());
+        payload.setParam("start_at", startDate.toString());
 
         if (result == Result.ABORTED
                 || result == Result.FAILURE
                 || result == Result.SUCCESS) {
             Date endDate = new Date(this.run.getStartTimeInMillis() + this.run.getDuration());
-            payload.SetParam("ended_at", endDate.toString());
+            payload.setParam("ended_at", endDate.toString());
         }
 
-        payload.SetParam("duration", this.run.getDurationString().toString());
+        payload.setParam("duration", this.run.getDurationString().toString());
 
         String content = String.format("The Jenkins Job %s execute notification",
                 this.run.getFullDisplayName());
@@ -402,16 +402,16 @@ public class Alauda {
             BuildData data = actions.get(0);
             if (data.buildsByBranchName.size() >= 1) {
                 String branch = data.buildsByBranchName.keySet().toArray()[0].toString();
-                payload.SetParam("repo_branch", branch);
+                payload.setParam("repo_branch", branch);
                 Revision revision = data.buildsByBranchName.get(branch).revision;
                 if (revision != null) {
                     String commitID = revision.getSha1().name();
-                    payload.SetParam("repo_version", commitID);
+                    payload.setParam("repo_version", commitID);
                 }
             }
 
             if (data.remoteUrls.size() >= 1) {
-                payload.SetParam("repo", data.remoteUrls.toArray()[0].toString());
+                payload.setParam("repo", data.remoteUrls.toArray()[0].toString());
             }
         }
     }
