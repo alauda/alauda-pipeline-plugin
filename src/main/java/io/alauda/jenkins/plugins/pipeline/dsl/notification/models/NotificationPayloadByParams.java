@@ -23,7 +23,7 @@ public class NotificationPayloadByParams {
         this.data.initialParams(params);
     }
 
-    public void SetParam(String key, Object value) {
+    public void setParam(String key, Object value) {
         this.data.params.put(key, value);
     }
 
@@ -121,7 +121,7 @@ public class NotificationPayloadByParams {
                 if (detailKeys.containsKey(entry.getKey())) {
                     title = detailKeys.get(title);
                 }
-                details.append(String.format("  %s: %s\n", title, entry.getValue().toString()));
+                details.append(String.format("  %s: %s%n", title, entry.getValue().toString()));
             }
             this.params.put("details", details.toString());
         }
