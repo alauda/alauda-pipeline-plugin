@@ -124,7 +124,7 @@ public class DeployStep extends AlaudaBaseStep{
     public Object doIt(@Nonnull Run<?, ?> run, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
         Alauda alauda = new Alauda((IAlaudaConfig) this).setJenkinsContext(run, launcher, listener);
 
-        return alauda.updateComponent(clusterName, resourceType, namespace, componentName, payload, getAsync(), rollback, getTimeout());
+        return alauda.updateComponent(clusterName, resourceType, namespace, applicationName, componentName, payload, getAsync(), rollback, getTimeout());
     }
 
     @Symbol("component")

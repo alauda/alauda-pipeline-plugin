@@ -840,7 +840,7 @@ class AlaudaDSL implements Serializable {
             // no yaml , must update service
             if(this.yamlFile == null || this.yamlFile==""){
                 if(component == null){
-                    throw new Exception(String.format("service %s is not exists, cannot update it", this.name) )
+                    throw new Exception(String.format("component %s is not exists, cannot update it", this.name) )
                 }
 
                 List<Kubernete.Container> originContainers = component.retrieveContainers();
@@ -870,8 +870,8 @@ class AlaudaDSL implements Serializable {
                 component.updateAnnotation()
                 Kubernete kube = component.getKubernetes()
                 println("${kube}")
-                alauda.script.alaudaDeployComponent clusterName: alauda.cluster(), resourceType: resourceType, componentName: name,
-                        namespace: alauda.namespace(), payload: kube, async: async, rollback:rollback
+                alauda.script.alaudaDeployComponent clusterName: alauda.cluster(), resourceType: resourceType, applicationName: this.applicationName,
+                        componentName: name, namespace: alauda.namespace(), payload: kube, async: async, rollback:rollback
 
                 return kube.getMetadata().getName();
             }
@@ -884,8 +884,8 @@ class AlaudaDSL implements Serializable {
             payload.updateAnnotation()
             println("${payload}")
 
-            alauda.script.alaudaDeployComponent clusterName: alauda.cluster(), resourceType: resourceType, componentName: name,
-                    namespace: alauda.namespace(), payload:payload, async: async, rollback:rollback
+            alauda.script.alaudaDeployComponent clusterName: alauda.cluster(), resourceType: resourceType, applicationName: this.applicationName,
+                    componentName: name, namespace: alauda.namespace(), payload:payload, async: async, rollback:rollback
 
             return payload.getMetadata().getName();
         }
