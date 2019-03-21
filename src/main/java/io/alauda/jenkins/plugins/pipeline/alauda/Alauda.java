@@ -188,7 +188,7 @@ public class Alauda {
                 if (componentStatus == null) {
                     throw new IOException(String.format("workload %s Status can not find.", workloadName));
                 } else {
-                    String info = String.format("%d. Get component[%s, %s, %s] status: %s \n", timer, clusterName, namespace, applicationName, componentStatus.getStatus());
+                    String info = String.format("%d. Get component[%s, %s, %s] status: %s %n", timer, clusterName, namespace, applicationName, componentStatus.getStatus());
                     LOGGER.info(info);
                     logger.printf(info);
                     if (componentStatus.isFinalStatus()) {
