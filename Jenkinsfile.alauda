@@ -55,20 +55,20 @@ pipeline {
             }
         }
 
-        stage("Upload"){
-            steps{
-                script{
-                    withCredentials([string(credentialsId:"alaudaorg-token", variable: "TOKEN")]){
-                        def result = sh(returnStdout:true, script:"curl --data-binary \"@target/alauda-pipeline.hpi\" -H \"Authorization: Token $TOKEN\" -X PUT ${OSS_ENDPOINT}/${NAMESPACE}/${SPACE_NAME}/${PREFIX}").trim()
-                        echo "$result"
-                        if (result.contains("errors") || result.contains("Failed")){
-                            error "upload error!!!"
-                        }
+        //stage("Upload"){
+        //    steps{
+        //        script{
+        //            withCredentials([string(credentialsId:"alaudaorg-token", variable: "TOKEN")]){
+        //                def result = sh(returnStdout:true, script:"curl --data-binary \"@target/alauda-pipeline.hpi\" -H \"Authorization: Token $TOKEN\" -X PUT ${OSS_ENDPOINT}/${NAMESPACE}/${SPACE_NAME}/${PREFIX}").trim()
+        //                echo "$result"
+        //                if (result.contains("errors") || result.contains("Failed")){
+        //                    error "upload error!!!"
+        //                }
 
-                    }
-                }
-            }
-        }
+        //            }
+        //        }
+        //    }
+        //}
     }
 
       post {
